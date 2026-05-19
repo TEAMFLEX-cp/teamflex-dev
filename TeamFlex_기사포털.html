@@ -6847,7 +6847,7 @@ async function mdMarkNotSent(caseId){
 // ══════════════════════════════════════════════════════════════════════
 // ── 오배송 카테고리 키워드 관리 ───────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════
-var _mdCatKw={'오배송':['배송 주소 상이','회수 필요'],'미반납':['미반납'],'오회수':['오회수']};
+var _mdCatKw={'오배송':['배송 주소 상이','회수 필요'],'미반납':['미반납'],'오회수':['오회수'],'기타':[]};
 var _frKw=['2회전 예상','2차 예상'];
 var _kwColor={'오배송':'#c62828','미반납':'#e65100','오회수':'#4527a0','기타':'#546e7a'};
 
@@ -6872,20 +6872,21 @@ async function _saveFrKw(){
 function _renderMdKwCats(){
   var el=document.getElementById('md-kw-cats');if(!el)return;
   var html='';
-  var cats=Object.keys(_mdCatKw).concat(['기타']);
+  var cats=['오배송','미반납','오회수','기타'];
   cats.forEach(function(cat){
     var color=_kwColor[cat]||'#546e7a';
-    var kws=cat==='기타'?['@df ID 포함 메시지 (자동 분류)']:(_mdCatKw[cat]||[]);
+    if(!_mdCatKw[cat])_mdCatKw[cat]=[];
+    var kws=_mdCatKw[cat];
     html+='<div style="margin-bottom:12px;padding:12px;background:#fafafa;border-radius:10px;border:1.5px solid #eee">'+
-      '<div style="font-size:12px;font-weight:800;color:'+color+';margin-bottom:8px">'+cat+'</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:'+(cat==='기타'?'0':'8px')+'">'+
+      '<div style="font-size:12px;font-weight:800;color:'+color+';margin-bottom:8px">'+cat+
+      (cat==='기타'?'<span style="font-size:10px;font-weight:400;color:#9e9e9e;margin-left:6px">(@df ID 포함 시 자동분류)</span>':'')+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">'+
       kws.map(function(kw,i){
-        if(cat==='기타')return'<span style="background:#eceff1;color:#546e7a;padding:3px 10px;border-radius:12px;font-size:11px">'+kw+'</span>';
         return'<span style="display:inline-flex;align-items:center;gap:4px;background:'+color+'22;color:'+color+';padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+color+'44">'+
           kw+'<button onclick="deleteMdKw(\''+cat+'\','+i+')" style="background:none;border:none;color:'+color+';font-size:12px;cursor:pointer;padding:0 2px;line-height:1">&#x2715;</button></span>';
       }).join('')+'</div>'+
-      (cat!=='기타'?
-        '<div style="display:flex;gap:5px"><input id="kwinp-'+cat+'" type="text" placeholder="키워드 추가" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" onkeydown="if(event.key===\'Enter\')addMdKw(\''+cat+'\')">'+'<button onclick="addMdKw(\''+cat+'\')" style="padding:5px 10px;background:'+color+';color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">추가</button></div>':'')+'</div>';
+      '<div style="display:flex;gap:5px"><input id="kwinp-'+cat+'" type="text" placeholder="키워드 추가" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" onkeydown="if(event.key===\'Enter\')addMdKw(\''+cat+'\')">'+
+      '<button onclick="addMdKw(\''+cat+'\')" style="padding:5px 10px;background:'+color+';color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">추가</button></div></div>';
   });
   el.innerHTML=html;
 }
@@ -6991,10 +6992,12 @@ async function loadFreshStatus(){
   if(!CU)return;
   var isAdmin=(CU.role==='admin');
   if(!getFeatureCtrl('fresh','active')&&!isAdmin)return;
+  var frKwBtn=isAdmin?'<button onclick="openFrKwPopup()" style="float:right;padding:6px 14px;background:#388e3c;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;margin-top:-4px">&#x1F33F; 키워드 설정</button>':'';
+  var frKwPopupHtml=isAdmin?'<div id="fr-kw-popup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10100;align-items:center;justify-content:center"><div style="background:#fff;border-radius:16px;padding:20px;width:92%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.25)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:15px;font-weight:700;color:#2e7d32">&#x1F33F; 2회전 트리거 키워드</span><button onclick="closeFrKwPopup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#757575;line-height:1">&#x2715;</button></div><div style="font-size:11px;color:#9e9e9e;margin-bottom:10px">Teams에서 이 키워드 감지 시 2회전 수량을 자동 파싱합니다.</div><div id="kw-fresh-list" style="margin-bottom:10px;min-height:32px"></div><div style="display:flex;gap:8px"><input id="kw-fresh-input" type="text" placeholder="예: 2회전 예상" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px" onkeydown="if(event.key===\'Enter\')saveFrKeyword()"><button onclick="saveFrKeyword()" style="padding:8px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">추가</button></div></div></div>':'';
 
   if(!sbClient){
-    mc.innerHTML=(isAdmin?_featureBar('fresh'):'')+
-      '<div class="stit">&#x1F33F; 신선 현황</div>'+
+    mc.innerHTML=frKwPopupHtml+(isAdmin?_featureBar('fresh'):'')+
+      '<div class="stit">&#x1F33F; 신선 현황'+frKwBtn+'</div>'+
       '<div class="empty"><div class="ei">&#x26A0;&#xFE0F;</div><p>서버 연결 없음</p></div>';
     return;
   }
@@ -7038,8 +7041,8 @@ async function loadFreshStatus(){
     var fsRes=await sbClient.from('fresh_snapshots')
       .select('*').order('created_at',{ascending:false}).limit(1);
 
-    var html=(isAdmin?_featureBar('fresh'):'')+
-      '<div class="stit">&#x1F33F; 신선 현황</div>'+
+    var html=frKwPopupHtml+(isAdmin?_featureBar('fresh'):'')+
+      '<div class="stit">&#x1F33F; 신선 현황'+frKwBtn+'</div>'+
       '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
         '<button onclick="loadFreshStatus()" style="background:#388e3c;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">&#x1F504; 새로고침</button>'+
       '</div>'+r2Banner;
@@ -7108,8 +7111,8 @@ async function loadFreshStatus(){
 
   }catch(ex){
     if(mc&&CUR_TAB==='fr'){
-      mc.innerHTML=(isAdmin?_featureBar('fresh'):'')+
-        '<div class="stit">&#x1F33F; 신선 현황</div>'+
+      mc.innerHTML=frKwPopupHtml+(isAdmin?_featureBar('fresh'):'')+
+        '<div class="stit">&#x1F33F; 신선 현황'+frKwBtn+'</div>'+
         '<div class="empty"><div class="ei">&#x274C;</div><p>불러오기 실패<br><span style="font-size:11px;color:#999">'+ex.message+'</span></p></div>';
     }
   }
