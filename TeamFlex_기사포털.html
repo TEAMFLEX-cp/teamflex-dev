@@ -5985,20 +5985,16 @@ function pgMisdelivery(){
 
   var kwBtn=isAdmin?'<button onclick="openMdKwPopup()" style="float:right;padding:6px 14px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;margin-top:-4px">🔍 키워드 설정</button>':'';
 
-  // 오배송 키워드 팝업
+  // 오배송 키워드 팝업 (카테고리별)
   var mdKwPopup=isAdmin?
     '<div id="md-kw-popup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10100;align-items:center;justify-content:center">'+
-    '<div style="background:#fff;border-radius:16px;padding:20px;width:88%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.25)">'+
+    '<div style="background:#fff;border-radius:16px;padding:20px;width:92%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:88vh;overflow-y:auto">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
     '<span style="font-size:15px;font-weight:700;color:#b71c1c">🔍 오배송 감지 키워드</span>'+
     '<button onclick="closeMdKwPopup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#757575;line-height:1">&#x2715;</button>'+
     '</div>'+
-    '<div style="font-size:11px;color:#9e9e9e;margin-bottom:10px">Teams 메시지에서 이 키워드가 감지되면 자동으로 오배송 케이스가 등록됩니다.</div>'+
-    '<div id="kw-misdelivery" style="margin-bottom:10px;min-height:32px"></div>'+
-    '<div style="display:flex;gap:8px">'+
-    '<input id="kw-misdelivery-input" type="text" placeholder="키워드 입력 후 추가" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px" onkeydown="if(event.key===\'Enter\')saveKeyword(\'misdelivery\')">'+
-    '<button onclick="saveKeyword(\'misdelivery\')" style="padding:8px 14px;background:#c62828;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;white-space:nowrap">추가</button>'+
-    '</div>'+
+    '<div style="font-size:11px;color:#9e9e9e;margin-bottom:12px">카테고리별 Teams 감지 키워드를 관리합니다.<br>기타: @df ID가 있는 경우 자동 분류됩니다.</div>'+
+    '<div id="md-kw-cats"></div>'+
     '</div>'+
     '</div>':'';
 
@@ -6844,6 +6840,95 @@ async function mdMarkNotSent(caseId){
   }catch(e){console.error('[mdMarkNotSent]',e);alert('처리 실패: '+e.message);}
 }
 
+
+// ══════════════════════════════════════════════════════════════════════
+// ── 오배송 카테고리 키워드 관리 ───────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+var _mdCatKw={'오배송':['배송 주소 상이','회수 필요'],'미반납':['미반납'],'오회수':['오회수']};
+var _frKw=['2회전 예상','2차 예상'];
+var _kwColor={'오배송':'#c62828','미반납':'#e65100','오회수':'#4527a0','기타':'#546e7a'};
+
+async function _loadMdKw(){
+  if(!sbClient)return;
+  try{var {data}=await sbClient.from('app_settings').select('value').eq('key','misdelivery_category_keywords').maybeSingle();
+  if(data&&data.value){var p=JSON.parse(data.value);if(p&&typeof p==='object')_mdCatKw=p;}}catch(e){}
+}
+async function _saveMdKw(){
+  if(!sbClient)return;
+  await sbClient.from('app_settings').upsert({key:'misdelivery_category_keywords',value:JSON.stringify(_mdCatKw)},{onConflict:'key'});
+}
+async function _loadFrKw(){
+  if(!sbClient)return;
+  try{var {data}=await sbClient.from('app_settings').select('value').eq('key','fresh_trigger_keywords').maybeSingle();
+  if(data&&data.value){var p=JSON.parse(data.value);if(Array.isArray(p)&&p.length)_frKw=p;}}catch(e){}
+}
+async function _saveFrKw(){
+  if(!sbClient)return;
+  await sbClient.from('app_settings').upsert({key:'fresh_trigger_keywords',value:JSON.stringify(_frKw)},{onConflict:'key'});
+}
+function _renderMdKwCats(){
+  var el=document.getElementById('md-kw-cats');if(!el)return;
+  var html='';
+  var cats=Object.keys(_mdCatKw).concat(['기타']);
+  cats.forEach(function(cat){
+    var color=_kwColor[cat]||'#546e7a';
+    var kws=cat==='기타'?['@df ID 포함 메시지 (자동 분류)']:(_mdCatKw[cat]||[]);
+    html+='<div style="margin-bottom:12px;padding:12px;background:#fafafa;border-radius:10px;border:1.5px solid #eee">'+
+      '<div style="font-size:12px;font-weight:800;color:'+color+';margin-bottom:8px">'+cat+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:'+(cat==='기타'?'0':'8px')+'">'+
+      kws.map(function(kw,i){
+        if(cat==='기타')return'<span style="background:#eceff1;color:#546e7a;padding:3px 10px;border-radius:12px;font-size:11px">'+kw+'</span>';
+        return'<span style="display:inline-flex;align-items:center;gap:4px;background:'+color+'22;color:'+color+';padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+color+'44">'+
+          kw+'<button onclick="deleteMdKw(\''+cat+'\','+i+')" style="background:none;border:none;color:'+color+';font-size:12px;cursor:pointer;padding:0 2px;line-height:1">&#x2715;</button></span>';
+      }).join('')+'</div>'+
+      (cat!=='기타'?
+        '<div style="display:flex;gap:5px"><input id="kwinp-'+cat+'" type="text" placeholder="키워드 추가" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" onkeydown="if(event.key===\'Enter\')addMdKw(\''+cat+'\')">'+'<button onclick="addMdKw(\''+cat+'\')" style="padding:5px 10px;background:'+color+';color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">추가</button></div>':'')+'</div>';
+  });
+  el.innerHTML=html;
+}
+async function openMdKwPopup(){
+  await _loadMdKw();_renderMdKwCats();
+  var el=document.getElementById('md-kw-popup');if(el)el.style.display='flex';
+}
+function closeMdKwPopup(){var el=document.getElementById('md-kw-popup');if(el)el.style.display='none';}
+async function addMdKw(cat){
+  var inp=document.getElementById('kwinp-'+cat);if(!inp)return;
+  var kw=inp.value.trim();if(!kw){showToast('키워드를 입력하세요',false);return;}
+  if(!_mdCatKw[cat])_mdCatKw[cat]=[];
+  if(_mdCatKw[cat].includes(kw)){showToast('이미 있는 키워드',false);return;}
+  _mdCatKw[cat].push(kw);inp.value='';
+  await _saveMdKw();_renderMdKwCats();showToast('✅ 키워드 추가: '+kw,true);
+}
+async function deleteMdKw(cat,idx){
+  var kw=_mdCatKw[cat][idx];_mdCatKw[cat].splice(idx,1);
+  await _saveMdKw();_renderMdKwCats();showToast('🗑 키워드 삭제: '+kw,true);
+}
+function saveKeyword(type){if(type==='misdelivery')addMdKw('오배송');}
+function _renderFrKwList(){
+  var el=document.getElementById('kw-fresh-list');if(!el)return;
+  el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:6px">'+
+    _frKw.map(function(kw,i){
+      return'<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:12px;font-size:12px;border:1px solid #a5d6a7">'+
+        kw+'<button onclick="deleteFrKw('+i+')" style="background:none;border:none;color:#2e7d32;font-size:12px;cursor:pointer;padding:0 2px;line-height:1">&#x2715;</button></span>';
+    }).join('')+'</div>';
+}
+async function openFrKwPopup(){
+  await _loadFrKw();_renderFrKwList();
+  var el=document.getElementById('fr-kw-popup');if(el)el.style.display='flex';
+}
+function closeFrKwPopup(){var el=document.getElementById('fr-kw-popup');if(el)el.style.display='none';}
+async function saveFrKeyword(){
+  var inp=document.getElementById('kw-fresh-input');if(!inp)return;
+  var kw=inp.value.trim();if(!kw){showToast('키워드를 입력하세요',false);return;}
+  if(_frKw.includes(kw)){showToast('이미 있는 키워드',false);return;}
+  _frKw.push(kw);inp.value='';
+  await _saveFrKw();_renderFrKwList();showToast('✅ 신선 키워드 추가: '+kw,true);
+}
+async function deleteFrKw(idx){
+  var kw=_frKw[idx];_frKw.splice(idx,1);
+  await _saveFrKw();_renderFrKwList();showToast('🗑 신선 키워드 삭제: '+kw,true);
+}
+
 async function mdDeleteCase(caseId){
   if(!sbClient||!CU)return;
   if(!confirm('이 오배송 건을 삭제하시겠습니까?\n삭제 후 Teams에서 같은 메시지가 다시 감지되어도 재등록되지 않습니다.'))return;
@@ -6875,8 +6960,24 @@ function pgFresh(){
         '<div style="font-size:13px;color:#999;line-height:1.7">관리자에 의해서 비활성화되었습니다.<br>업데이트 예정입니다.</div>'+
       '</div>';
   }
-  return (isAdmin?_featureBar('fresh'):'')+
-    '<div class="stit">&#x1F33F; 신선 현황</div>'+
+  var frKwBtn=isAdmin?'<button onclick="openFrKwPopup()" style="float:right;padding:6px 14px;background:#388e3c;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;margin-top:-4px">&#x1F33F; 키워드 설정</button>':'';
+  var frKwPopupHtml=isAdmin?
+    '<div id="fr-kw-popup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10100;align-items:center;justify-content:center">'+
+    '<div style="background:#fff;border-radius:16px;padding:20px;width:92%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.25)">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+    '<span style="font-size:15px;font-weight:700;color:#2e7d32">&#x1F33F; 2회전 트리거 키워드</span>'+
+    '<button onclick="closeFrKwPopup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#757575;line-height:1">&#x2715;</button>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#9e9e9e;margin-bottom:10px">Teams에서 이 키워드 감지 시 2회전 수량을 자동 파싱합니다.</div>'+
+    '<div id="kw-fresh-list" style="margin-bottom:10px;min-height:32px"></div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<input id="kw-fresh-input" type="text" placeholder="예: 2회전 예상" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px" onkeydown="if(event.key===\'Enter\')saveFrKeyword()">'+
+    '<button onclick="saveFrKeyword()" style="padding:8px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">추가</button>'+
+    '</div>'+
+    '</div>'+
+    '</div>':'';
+  return (isAdmin?_featureBar('fresh'):'')+frKwPopupHtml+
+    '<div class="stit">&#x1F33F; 신선 현황'+frKwBtn+'</div>'+
     '<div style="text-align:center;padding:40px;color:#888">&#x23F3; 불러오는 중...</div>';
 }
 
