@@ -1936,7 +1936,6 @@ function closeCfgSubMenu(){
   var sheet=document.getElementById('cfg-sub-sheet');
   if(sheet)sheet.remove();
 }
-
 // ── 일반 사용자(팀장/조장/기사) 설정 서브메뉴 ────────────────────────────────
 function openUserSubMenu(){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
@@ -6938,4 +6937,79 @@ async function loadFreshStatus(){
     var html=(isAdmin?_featureBar('fresh'):'')+
       '<div class="stit">&#x1F33F; 신선 현황</div>'+
       '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
-        '<button onclick="loadFreshStatus()" style="background:#388e3c;color:#fff;bor
+        '<button onclick="loadFreshStatus()" style="background:#388e3c;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">&#x1F504; 새로고침</button>'+
+      '</div>'+r2Banner;
+
+    if(fsRes.error||!fsRes.data||fsRes.data.length===0){
+      html+='<div class="empty"><div class="ei">&#x1F33F;</div><p>신선 배송 현황 데이터 없음<br><span style="font-size:11px;color:#999">Teams 폴러가 실행 중이면 자동으로 업데이트됩니다</span></p></div>';
+      mc.innerHTML=html;
+      return;
+    }
+
+    var snap=fsRes.data[0];
+    var routes=snap.routes||[];
+    var snapAt=(snap.snapshot_at||snap.created_at||'').slice(11,16);
+    var snapDate=(snap.snapshot_at||snap.created_at||'').slice(0,10);
+
+    if(routes.length===0){
+      html+='<div class="card" style="text-align:center;color:#888;padding:24px">배송 현황 없음</div>';
+      mc.innerHTML=html;
+      return;
+    }
+
+    var db=getDB();
+    var idMap={};
+    Object.values(db).forEach(function(d){if(d.coupang_id)idMap[String(d.coupang_id)]=d.name;});
+
+    html+='<div style="font-size:11px;color:#888;margin-bottom:6px">&#x1F4CA; 현황 기준: '+snapDate+' '+snapAt+'</div>'+
+      '<div class="card" style="padding:0;overflow:hidden">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="background:#e8f5e9;font-weight:800;font-size:11px">'+
+        '<th style="padding:8px;text-align:left">라우트</th>'+
+        '<th style="padding:8px 4px;text-align:left">기사</th>'+
+        '<th style="padding:8px 4px;text-align:center">위탁</th>'+
+        '<th style="padding:8px 4px;text-align:center">스캔</th>'+
+        '<th style="padding:8px 4px;text-align:center">완료</th>'+
+        '<th style="padding:8px 4px;text-align:center">미배</th>'+
+        '<th style="padding:8px 4px;text-align:center">PDD</th>'+
+      '</tr></thead><tbody>';
+
+    routes.forEach(function(rt){
+      var abbr=rt.route||'';
+      var m=abbr.match(/([A-Z]\d+[A-Z]?\d*)$/);if(m)abbr=m[1];
+      var worker=String(rt.worker||'');
+      var wName=idMap[worker]||worker||'미배정';
+      var csg=rt.consignment||0,scn=rt.scan||0,cmp=rt.completed||0,und=rt.undelivered||0,pdd=rt.pdd_miss||0;
+      var rowBg='';
+      var statusCells;
+      if(scn===0&&csg>0){
+        statusCells='<td colspan="3" style="text-align:center;color:#2e7d32;font-weight:700;font-size:11px">&#x2705; 완료</td><td>-</td>';
+      }else{
+        if(pdd>0&&und!==pdd)rowBg='background:#fff3e0';
+        var pddTd=pdd>0
+          ?(und===pdd?'<td style="color:#f57c00;font-size:10px">&#x23F3;'+pdd+'</td>':'<td style="color:#c62828;font-weight:700">&#x26A0;'+pdd+'</td>')
+          :'<td style="color:#ccc">-</td>';
+        statusCells='<td style="text-align:center">'+cmp+'</td><td style="text-align:center;color:#c62828">'+und+'</td>'+pddTd;
+      }
+      html+='<tr style="border-bottom:1px solid #f0f0f0;'+rowBg+'">'+
+        '<td style="padding:8px;font-weight:700;color:#1a237e">'+abbr+'</td>'+
+        '<td style="padding:8px 4px;font-size:11px;color:#444">'+wName+'</td>'+
+        '<td style="text-align:center;color:#5c6bc0">'+csg+'</td>'+
+        '<td style="text-align:center;color:#1565c0">'+scn+'</td>'+
+        statusCells+'</tr>';
+    });
+
+    html+='</tbody></table></div>';
+    mc.innerHTML=html;
+
+  }catch(ex){
+    if(mc&&CUR_TAB==='fr'){
+      mc.innerHTML=(isAdmin?_featureBar('fresh'):'')+
+        '<div class="stit">&#x1F33F; 신선 현황</div>'+
+        '<div class="empty"><div class="ei">&#x274C;</div><p>불러오기 실패<br><span style="font-size:11px;color:#999">'+ex.message+'</span></p></div>';
+    }
+  }
+}
+
+</script>
+</body></html>
