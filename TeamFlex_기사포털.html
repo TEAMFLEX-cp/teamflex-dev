@@ -1937,11 +1937,48 @@ function closeCfgSubMenu(){
   if(sheet)sheet.remove();
 }
 
+// ── 일반 사용자(팀장/조장/기사) 설정 서브메뉴 ────────────────────────────────
+function openUserSubMenu(){
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  var el=document.getElementById('ni-usr-cfg');if(el)el.classList.add('on');
+  var old=document.getElementById('usr-sub-sheet');if(old)old.remove();
+  var sheet=document.createElement('div');
+  sheet.id='usr-sub-sheet';
+  sheet.style.cssText='position:fixed;inset:0;z-index:10100;display:flex;flex-direction:column;justify-content:flex-end;animation:fadeIn .15s';
+  sheet.innerHTML=
+    '<div onclick="closeUserSubMenu()" style="flex:1;background:rgba(0,0,0,.45)"></div>'+
+    '<div style="background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 36px;box-shadow:0 -4px 24px rgba(0,0,0,.15);animation:slideUp .2s;max-height:78vh;overflow-y:auto">'+
+      '<div style="width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 20px"></div>'+
+      '<div style="font-size:16px;font-weight:900;color:#1a237e;margin-bottom:18px;text-align:center">&#x2699;&#xFE0F; 설정</div>'+
+      '<div style="display:flex;flex-direction:column;gap:10px">'+
+        '<button onclick="closeUserSubMenu();go(\'er\')" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:#f3f4ff;border:2px solid #c5cae9;border-radius:14px;font-size:15px;font-weight:700;color:#3949ab;cursor:pointer;text-align:left;box-sizing:border-box">'+
+          '<span style="font-size:24px;flex-shrink:0">&#x1F4DE;</span>'+
+          '<div style="flex:1;min-width:0"><div>비상연락망</div><div style="font-size:11px;font-weight:400;color:#7986cb;margin-top:2px">기사 연락처 확인</div></div>'+
+        '</button>'+
+        '<button onclick="closeUserSubMenu();go(\'st\')" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:#f0f4ff;border:2px solid #bbdefb;border-radius:14px;font-size:15px;font-weight:700;color:#1565c0;cursor:pointer;text-align:left;box-sizing:border-box">'+
+          '<span style="font-size:24px;flex-shrink:0">&#x1F4B0;</span>'+
+          '<div style="flex:1;min-width:0"><div>정산</div><div style="font-size:11px;font-weight:400;color:#64b5f6;margin-top:2px">배송비 정산 내역</div></div>'+
+        '</button>'+
+        '<button onclick="closeUserSubMenu();openPwModal()" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:#f8f9ff;border:2px solid #e8eaf6;border-radius:14px;font-size:15px;font-weight:700;color:#283593;cursor:pointer;text-align:left;box-sizing:border-box">'+
+          '<span style="font-size:24px;flex-shrink:0">&#x1F512;</span>'+
+          '<div style="flex:1;min-width:0"><div>비밀번호 변경</div><div style="font-size:11px;font-weight:400;color:#9fa8da;margin-top:2px">현재 비밀번호 확인 후 변경</div></div>'+
+        '</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(sheet);
+}
+function closeUserSubMenu(){
+  var sheet=document.getElementById('usr-sub-sheet');
+  if(sheet)sheet.remove();
+}
+
 // ── 안드로이드 뒤로가기 (popstate) 핸들러 ────────────────────────────
 window.addEventListener('popstate',function(e){
   // 서브메뉴 열려있으면 닫기
   var sheet=document.getElementById('cfg-sub-sheet');
   if(sheet){sheet.remove();window.history.pushState({tab:CUR_TAB,ts:Date.now()},'');return;}
+  var uSheet=document.getElementById('usr-sub-sheet');
+  if(uSheet){uSheet.remove();window.history.pushState({tab:CUR_TAB,ts:Date.now()},'');return;}
   // 오배송 팝업 (동적 생성이라 DOM 존재 여부로 체크)
   if(document.getElementById('md-popup-back')){mdCloseCase();window.history.pushState({tab:CUR_TAB,ts:Date.now()},'');return;}
   // 팝업들 닫기
@@ -1960,6 +1997,7 @@ window.addEventListener('popstate',function(e){
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
     var el=document.getElementById('ni-'+prev);if(el)el.classList.add('on');
     if(prev==='ap'||prev==='ph'||prev==='cfg'){var cfgEl=document.getElementById('ni-cfg');if(cfgEl)cfgEl.classList.add('on');}
+    if(prev==='er'||prev==='st'){var uCfgEl2=document.getElementById('ni-usr-cfg');if(uCfgEl2)uCfgEl2.classList.add('on');}
     var mc=document.getElementById('mc');
     if(prev==='hm')mc.innerHTML=pgHome();
     else if(prev==='nc')mc.innerHTML=pgAnn(false);
@@ -2572,8 +2610,8 @@ function launchApp(){
       '<div class="ni" id="ni-ab" onclick="go(\'ab\')"><span class="nicon">&#x1F4E2;</span>공지</div>'+
       '<div class="ni" id="ni-as" onclick="go(\'as\')"><span class="nicon">&#x1F4C5;</span>스케줄</div>'+
       '<div class="ni" id="ni-sl" onclick="go(\'sl\')"><span class="nicon">&#x1F4CB;</span>변경이력</div>'+
-      '<div class="ni" id="ni-fr" onclick="go(\'fr\')"><span class="nicon">&#x1F33F;</span>신선</div>'+
       '<div class="ni" id="ni-md" onclick="go(\'md\')"><span class="nicon">&#x1F6A8;</span>오배송</div>'+
+      '<div class="ni" id="ni-fr" onclick="go(\'fr\')"><span class="nicon">&#x1F33F;</span>신선</div>'+
       '<div class="ni" id="ni-az" onclick="go(\'az\')"><span class="nicon">&#x1F4B0;</span>정산</div>'+
       '<div class="ni" id="ni-cfg" onclick="openCfgSubMenu()"><span class="nicon">&#x2699;</span>설정</div>';
     go('hm');
@@ -2589,10 +2627,9 @@ function launchApp(){
       '<div class="ni on" id="ni-hm" onclick="go(\'hm\')"><span class="nicon">&#x1F3E0;</span>홈</div>'+
       '<div class="ni" id="ni-nc" onclick="go(\'nc\')"><span class="nicon">&#x1F4E2;</span>공지</div>'+
       '<div class="ni" id="ni-fs" onclick="go(\'fs\')"><span class="nicon">&#x1F4C5;</span>전체스케줄</div>'+
-      '<div class="ni" id="ni-st" onclick="go(\'st\')"><span class="nicon">&#x1F4B0;</span>정산</div>'+
       '<div class="ni" id="ni-md" onclick="go(\'md\')"><span class="nicon">&#x1F6A8;</span>오배송</div>'+
       '<div class="ni" id="ni-fr" onclick="go(\'fr\')"><span class="nicon">&#x1F33F;</span>신선</div>'+
-      '<div class="ni" id="ni-er" onclick="go(\'er\')"><span class="nicon">&#x1F4DE;</span>비상연락망</div>';
+      '<div class="ni" id="ni-usr-cfg" onclick="openUserSubMenu()"><span class="nicon">&#x2699;&#xFE0F;</span>설정</div>';
     go('hm');
   }
   updateNavDots();
@@ -3028,12 +3065,15 @@ var _lastBackMs=0;
 function go(tab){
   // 설정 서브메뉴 시트가 열려있으면 닫기
   var _cfgSheet=document.getElementById('cfg-sub-sheet');if(_cfgSheet)_cfgSheet.remove();
+  var _usrSheet=document.getElementById('usr-sub-sheet');if(_usrSheet)_usrSheet.remove();
   if(CUR_TAB&&CUR_TAB!==tab)_navHistory.push(CUR_TAB);
   EDIT_MODE=false;CUR_TAB=tab;
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
   var el=document.getElementById('ni-'+tab);if(el)el.classList.add('on');
   // 권한/연락처/설정은 모두 ni-cfg 탭을 활성 표시
   if(tab==='ap'||tab==='ph'||tab==='cfg'){var cfgEl=document.getElementById('ni-cfg');if(cfgEl)cfgEl.classList.add('on');}
+  // 일반 사용자 설정 하위 탭(비상연락망/정산)은 ni-usr-cfg 활성 표시
+  if(tab==='er'||tab==='st'){var uCfgEl=document.getElementById('ni-usr-cfg');if(uCfgEl)uCfgEl.classList.add('on');}
   window.history.pushState({tab:tab,ts:Date.now()},'');
   var mc=document.getElementById('mc');
   if(tab==='hm')mc.innerHTML=pgHome();
@@ -6898,79 +6938,4 @@ async function loadFreshStatus(){
     var html=(isAdmin?_featureBar('fresh'):'')+
       '<div class="stit">&#x1F33F; 신선 현황</div>'+
       '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
-        '<button onclick="loadFreshStatus()" style="background:#388e3c;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">&#x1F504; 새로고침</button>'+
-      '</div>'+r2Banner;
-
-    if(fsRes.error||!fsRes.data||fsRes.data.length===0){
-      html+='<div class="empty"><div class="ei">&#x1F33F;</div><p>신선 배송 현황 데이터 없음<br><span style="font-size:11px;color:#999">Teams 폴러가 실행 중이면 자동으로 업데이트됩니다</span></p></div>';
-      mc.innerHTML=html;
-      return;
-    }
-
-    var snap=fsRes.data[0];
-    var routes=snap.routes||[];
-    var snapAt=(snap.snapshot_at||snap.created_at||'').slice(11,16);
-    var snapDate=(snap.snapshot_at||snap.created_at||'').slice(0,10);
-
-    if(routes.length===0){
-      html+='<div class="card" style="text-align:center;color:#888;padding:24px">배송 현황 없음</div>';
-      mc.innerHTML=html;
-      return;
-    }
-
-    var db=getDB();
-    var idMap={};
-    Object.values(db).forEach(function(d){if(d.coupang_id)idMap[String(d.coupang_id)]=d.name;});
-
-    html+='<div style="font-size:11px;color:#888;margin-bottom:6px">&#x1F4CA; 현황 기준: '+snapDate+' '+snapAt+'</div>'+
-      '<div class="card" style="padding:0;overflow:hidden">'+
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-      '<thead><tr style="background:#e8f5e9;font-weight:800;font-size:11px">'+
-        '<th style="padding:8px;text-align:left">라우트</th>'+
-        '<th style="padding:8px 4px;text-align:left">기사</th>'+
-        '<th style="padding:8px 4px;text-align:center">위탁</th>'+
-        '<th style="padding:8px 4px;text-align:center">스캔</th>'+
-        '<th style="padding:8px 4px;text-align:center">완료</th>'+
-        '<th style="padding:8px 4px;text-align:center">미배</th>'+
-        '<th style="padding:8px 4px;text-align:center">PDD</th>'+
-      '</tr></thead><tbody>';
-
-    routes.forEach(function(rt){
-      var abbr=rt.route||'';
-      var m=abbr.match(/([A-Z]\d+[A-Z]?\d*)$/);if(m)abbr=m[1];
-      var worker=String(rt.worker||'');
-      var wName=idMap[worker]||worker||'미배정';
-      var csg=rt.consignment||0,scn=rt.scan||0,cmp=rt.completed||0,und=rt.undelivered||0,pdd=rt.pdd_miss||0;
-      var rowBg='';
-      var statusCells;
-      if(scn===0&&csg>0){
-        statusCells='<td colspan="3" style="text-align:center;color:#2e7d32;font-weight:700;font-size:11px">&#x2705; 완료</td><td>-</td>';
-      }else{
-        if(pdd>0&&und!==pdd)rowBg='background:#fff3e0';
-        var pddTd=pdd>0
-          ?(und===pdd?'<td style="color:#f57c00;font-size:10px">&#x23F3;'+pdd+'</td>':'<td style="color:#c62828;font-weight:700">&#x26A0;'+pdd+'</td>')
-          :'<td style="color:#ccc">-</td>';
-        statusCells='<td style="text-align:center">'+cmp+'</td><td style="text-align:center;color:#c62828">'+und+'</td>'+pddTd;
-      }
-      html+='<tr style="border-bottom:1px solid #f0f0f0;'+rowBg+'">'+
-        '<td style="padding:8px;font-weight:700;color:#1a237e">'+abbr+'</td>'+
-        '<td style="padding:8px 4px;font-size:11px;color:#444">'+wName+'</td>'+
-        '<td style="text-align:center;color:#5c6bc0">'+csg+'</td>'+
-        '<td style="text-align:center;color:#1565c0">'+scn+'</td>'+
-        statusCells+'</tr>';
-    });
-
-    html+='</tbody></table></div>';
-    mc.innerHTML=html;
-
-  }catch(ex){
-    if(mc&&CUR_TAB==='fr'){
-      mc.innerHTML=(isAdmin?_featureBar('fresh'):'')+
-        '<div class="stit">&#x1F33F; 신선 현황</div>'+
-        '<div class="empty"><div class="ei">&#x274C;</div><p>불러오기 실패<br><span style="font-size:11px;color:#999">'+ex.message+'</span></p></div>';
-    }
-  }
-}
-
-</script>
-</body></html>
+        '<button onclick="loadFreshStatus()" style="background:#388e3c;color:#fff;bor
