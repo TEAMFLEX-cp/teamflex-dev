@@ -4209,7 +4209,9 @@ function pgFullSched(){
     var rows='';
     for(var ri=0;ri<g.rt.length;ri++){
       var rtObj=g.rt[ri];var route=rtObj.r;
-      var routeCell='<td class="rtd" style="'+rtdStyle+'">'+route+'</td>';
+      var _rtm=route.match(/^(.+?)\s*\(([A-Z]{1,4})\)$/);
+      var _rtDisp=_rtm?_rtm[1]+'<br><span style="font-size:9px;background:#E3F2FD;color:#1565C0;border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:.3px">'+_rtm[2]+'</span>':route;
+      var routeCell='<td class="rtd" style="'+rtdStyle+'">'+_rtDisp+'</td>';
       var cells='';
       for(var di=0;di<wk.dt.length;di++){
         var spanVal=spanMap[ri+'_'+di];
