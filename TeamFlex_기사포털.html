@@ -159,7 +159,7 @@ body{font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#f0f
 /* touch-action:auto → body의 pan-y 제한을 이 컨테이너에서 해제해 가로 스크롤 허용 */
 #sched-scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;padding-bottom:4px;touch-action:auto}
 #sched-inner{display:block;}
-.fgrp{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px;overflow:hidden}
+.fgrp{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
 .fgh{color:#fff;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fc{font-size:14px;font-weight:800}
 .fn2{margin-left:auto;font-size:12px;opacity:.8}
@@ -171,9 +171,9 @@ table.ft{width:auto;border-collapse:collapse;font-size:12px;min-width:520px;tabl
 .share-cell:active{background:#FFF176 !important}
 .share-badge{display:inline-block;background:#F57F17;color:#fff;border-radius:8px;font-size:9px;padding:1px 4px;margin-left:2px;vertical-align:middle;font-weight:700}
 table.ft th{background:#e8eaf6;color:#3949ab;padding:8px 4px;text-align:center;font-weight:700;border-bottom:2px solid #c5cae9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-table.ft th.rth{text-align:center;width:96px;background:#dde0f5;color:#1a1a1a}
+table.ft th.rth{text-align:center;width:96px;background:#dde0f5;color:#1a1a1a;position:sticky;left:0;z-index:3}
 table.ft td{padding:7px 3px;text-align:center;border-bottom:1px solid #f0f0f0;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-table.ft td.rtd{text-align:center;font-weight:800;font-size:12px;color:#1a1a1a;background:#f3f4ff;border-right:2px solid #c5cae9;width:96px}
+table.ft td.rtd{text-align:center;font-weight:800;font-size:12px;color:#1a1a1a;background:#f3f4ff;border-right:2px solid #c5cae9;width:96px;position:sticky;left:0;z-index:2}
 table.ft td.dname{font-size:13px;color:#333;font-weight:600}
 table.ft td.dname.editable{cursor:pointer;background:#fff9e6;color:#e65100}
 table.ft td.empty{color:#ddd;font-size:13px}
@@ -190,7 +190,7 @@ table.ft td.rtd{font-size:13px}
 .perm-checks{display:flex;gap:12px;flex-wrap:wrap}
 .perm-check{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
 table.ft tr:hover td{background:#f8f9ff}
-table.ft tr:hover td.rtd{background:#eaecf8}
+table.ft tr:hover td.rtd{background:#eaecf8;position:sticky;left:0;z-index:2}
 @keyframes tod-pulse{0%,100%{opacity:1;text-shadow:0 0 6px rgba(255,109,0,.9)}50%{opacity:.6;text-shadow:none}}
 table.ft td.tod-col{border-left:4px solid #FF6D00 !important;border-right:4px solid #FF6D00 !important;background:rgba(255,235,59,.18) !important;color:#1a1a1a !important}
 table.ft tr:last-child td.tod-col{border-bottom:4px solid #FF6D00 !important}
