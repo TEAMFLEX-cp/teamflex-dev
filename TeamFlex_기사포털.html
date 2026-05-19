@@ -5992,12 +5992,22 @@ function pgMisdelivery(){
   var mdKwPopup=isAdmin?
     '<div id="md-kw-popup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10100;align-items:center;justify-content:center">'+
     '<div style="background:#fff;border-radius:16px;padding:20px;width:92%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:88vh;overflow-y:auto">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
-    '<span style="font-size:15px;font-weight:700;color:#b71c1c">🔍 오배송 감지 키워드</span>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+    '<span style="font-size:15px;font-weight:700;color:#b71c1c">🔍 오배송 감지 설정</span>'+
     '<button onclick="closeMdKwPopup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#757575;line-height:1">&#x2715;</button>'+
     '</div>'+
+    '<div style="display:flex;gap:0;margin-bottom:14px;background:#f5f5f5;border-radius:8px;padding:3px">'+
+    '<button id="mdtab-chat" onclick="mdKwTab(\'chat\')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:#1565c0;color:#fff">&#x1F4E1; 채팅방</button>'+
+    '<button id="mdtab-kw" onclick="mdKwTab(\'kw\')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#888">&#x1F511; 키워드</button>'+
+    '</div>'+
+    '<div id="mdtab-chat-body">'+
+    '<div style="font-size:11px;color:#9e9e9e;margin-bottom:10px">팀즈 폴러가 감지할 채팅방을 선택합니다. 체크된 채팅방에서만 오배송 감지 및 답글을 전송합니다.</div>'+
+    '<div id="md-chat-list"></div>'+
+    '</div>'+
+    '<div id="mdtab-kw-body" style="display:none">'+
     '<div style="font-size:11px;color:#9e9e9e;margin-bottom:12px">카테고리별 Teams 감지 키워드를 관리합니다.<br>기타: @df ID가 있는 경우 자동 분류됩니다.</div>'+
     '<div id="md-kw-cats"></div>'+
+    '</div>'+
     '</div>'+
     '</div>':'';
 
@@ -6847,6 +6857,78 @@ async function mdMarkNotSent(caseId){
 // ══════════════════════════════════════════════════════════════════════
 // ── 오배송 카테고리 키워드 관리 ───────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════
+var _monitorChats=[
+  {id:'19:5f71d261708f4da5a61fedb6ceffa5f3@thread.v2',name:'[일산3주간] 팀플렉스',active:false},
+  {id:'19:7243eb1ffc0c403088a98c043daad4d8@thread.v2',name:'[일산8캠프] 2W',active:false},
+  {id:'19:76c6b47f33ac43c78228e61ed48d9861@thread.v2',name:'[일산8캠프] 1W',active:false},
+  {id:'19:0271ca67-bb83-4fbd-b7a8-a983e207b3ac_bb08d485-bc91-478c-bdce-3fd3d2617261@unq.gbl.spaces',name:'[테스트] 문병국',active:true}
+];
+async function _loadMonitorChats(){
+  try{var {data}=await sbClient.from('app_settings').select('value').eq('key','monitor_chat_ids').maybeSingle();
+  if(data&&data.value){var p=JSON.parse(data.value);if(Array.isArray(p)&&p.length)_monitorChats=p;}}catch(e){}
+}
+async function _saveMonitorChats(){
+  await sbClient.from('app_settings').upsert({key:'monitor_chat_ids',value:JSON.stringify(_monitorChats)},{onConflict:'key'});
+}
+function _renderMonitorChats(){
+  var el=document.getElementById('md-chat-list');if(!el)return;
+  var html=_monitorChats.map(function(ch,i){
+    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:'+(ch.active?'#e3f2fd':'#fafafa')+';border-radius:10px;border:1.5px solid '+(ch.active?'#1565c0':'#e0e0e0')+';margin-bottom:8px">'+
+      '<label style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer">'+
+        '<input type="checkbox"'+(ch.active?' checked':'')+' onchange="toggleMonitorChat('+i+',this.checked)" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer">'+
+        '<div>'+
+          '<div style="font-size:13px;font-weight:700;color:'+(ch.active?'#1565c0':'#555')+'">'+ch.name+'</div>'+
+          '<div style="font-size:10px;color:#bbb;margin-top:2px;word-break:break-all">'+ch.id.slice(0,38)+'...</div>'+
+        '</div>'+
+      '</label>'+
+      '<button onclick="deleteMonitorChat('+i+')" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;margin-left:6px">&#x2715;</button>'+
+    '</div>';
+  }).join('');
+  html+='<div style="margin-top:6px;padding:12px;background:#f9f9f9;border-radius:10px;border:1px dashed #ccc">'+
+    '<div style="font-size:11px;font-weight:700;color:#999;margin-bottom:8px">채팅방 직접 추가</div>'+
+    '<input id="md-chat-id-inp" type="text" placeholder="Teams 채팅방 ID (19:...)" style="width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:11px;margin-bottom:6px">'+
+    '<input id="md-chat-name-inp" type="text" placeholder="채팅방 이름 (예: 팀플렉스)" style="width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:11px;margin-bottom:8px">'+
+    '<button onclick="addMonitorChat()" style="width:100%;padding:8px;background:#1565c0;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">&#x2795; 추가</button>'+
+  '</div>';
+  el.innerHTML=html;
+}
+function mdKwTab(tab){
+  var chatBody=document.getElementById('mdtab-chat-body');
+  var kwBody=document.getElementById('mdtab-kw-body');
+  var chatBtn=document.getElementById('mdtab-chat');
+  var kwBtn=document.getElementById('mdtab-kw');
+  if(!chatBody||!kwBody)return;
+  if(tab==='chat'){
+    chatBody.style.display='';kwBody.style.display='none';
+    if(chatBtn){chatBtn.style.background='#1565c0';chatBtn.style.color='#fff';chatBtn.style.fontWeight='700';}
+    if(kwBtn){kwBtn.style.background='transparent';kwBtn.style.color='#888';kwBtn.style.fontWeight='600';}
+  }else{
+    chatBody.style.display='none';kwBody.style.display='';
+    if(kwBtn){kwBtn.style.background='#1565c0';kwBtn.style.color='#fff';kwBtn.style.fontWeight='700';}
+    if(chatBtn){chatBtn.style.background='transparent';chatBtn.style.color='#888';chatBtn.style.fontWeight='600';}
+  }
+}
+async function toggleMonitorChat(idx,active){
+  _monitorChats[idx].active=active;
+  await _saveMonitorChats();_renderMonitorChats();
+  showToast(active?'✅ 채팅방 감지 활성화':'🔕 채팅방 감지 비활성화',active);
+}
+async function addMonitorChat(){
+  var idInp=document.getElementById('md-chat-id-inp');
+  var nameInp=document.getElementById('md-chat-name-inp');
+  var id=idInp.value.trim();var name=nameInp.value.trim();
+  if(!id){showToast('채팅방 ID를 입력하세요',false);return;}
+  if(!name)name=id.slice(0,24)+'...';
+  if(_monitorChats.find(function(c){return c.id===id;})){showToast('이미 있는 채팅방',false);return;}
+  _monitorChats.push({id:id,name:name,active:true});
+  idInp.value='';nameInp.value='';
+  await _saveMonitorChats();_renderMonitorChats();showToast('✅ 채팅방 추가됨',true);
+}
+async function deleteMonitorChat(idx){
+  var name=_monitorChats[idx].name;
+  _monitorChats.splice(idx,1);
+  await _saveMonitorChats();_renderMonitorChats();showToast('🗑 채팅방 삭제: '+name,true);
+}
 var _mdCatKw={'오배송':['배송 주소 상이','회수 필요'],'미반납':['미반납'],'오회수':['오회수'],'기타':[]};
 var _frKw=['2회전 예상','2차 예상'];
 var _kwColor={'오배송':'#c62828','미반납':'#e65100','오회수':'#4527a0','기타':'#546e7a'};
@@ -6891,7 +6973,9 @@ function _renderMdKwCats(){
   el.innerHTML=html;
 }
 async function openMdKwPopup(){
-  await _loadMdKw();_renderMdKwCats();
+  await _loadMdKw();await _loadMonitorChats();
+  _renderMdKwCats();_renderMonitorChats();
+  mdKwTab('chat');
   var el=document.getElementById('md-kw-popup');if(el)el.style.display='flex';
 }
 function closeMdKwPopup(){var el=document.getElementById('md-kw-popup');if(el)el.style.display='none';}
