@@ -5929,6 +5929,7 @@ function _workerToName(loginId){
 // ── 오배송 알림 시스템 ────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════
 var _mdCases=[];
+var _mdDateFilter='today'; // 'today' | 'all'
 var _mdOpenCaseId=null; // 현재 열린 모달의 case ID (실시간 업데이트용)
 var _mdRealtimeCh=null; // Supabase realtime 채널
 var _mdReplyPhotos={}; // caseId -> [File 배열] (기사 답변 첨부 사진)
@@ -6011,10 +6012,16 @@ function pgMisdelivery(){
     '</div>'+
     '</div>':'';
 
+  var filterBar='<div style="display:flex;gap:6px;margin-bottom:12px;align-items:center">'+
+    '<span style="font-size:12px;font-weight:700;color:#888">&#x1F4C5; 기간</span>'+
+    '<button id="md-flt-today" onclick="mdSetDateFilter(\'today\')" style="padding:5px 14px;border:none;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;background:#1565c0;color:#fff">오늘</button>'+
+    '<button id="md-flt-all" onclick="mdSetDateFilter(\'all\')" style="padding:5px 14px;border:none;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;background:#eee;color:#888">전체</button>'+
+    '<span id="md-flt-count" style="font-size:11px;color:#aaa;margin-left:2px"></span>'+
+    '</div>';
   return _featureBar('misdelivery')+
     '<div class="stit">🚨 오배송 알림'+kwBtn+'</div>'+
     mdKwPopup+
-    modeSec+sumSec+
+    modeSec+sumSec+filterBar+
     '<div id="md-list"><div class="md-empty"><div class="md-empty-icon">⏳</div><div>로딩 중...</div></div></div>';
 }
 
@@ -6136,6 +6143,14 @@ async function mdAutoArchive(cases){
   }catch(ae){console.warn('[autoArchive]',ae);}
 }
 
+function mdSetDateFilter(f){
+  _mdDateFilter=f;
+  var b1=document.getElementById('md-flt-today');
+  var b2=document.getElementById('md-flt-all');
+  if(b1){b1.style.background=f==='today'?'#1565c0':'#eee';b1.style.color=f==='today'?'#fff':'#888';}
+  if(b2){b2.style.background=f==='all'?'#1565c0':'#eee';b2.style.color=f==='all'?'#fff':'#888';}
+  mdRenderList(_mdCases);
+}
 // ── 케이스 목록 렌더링 ────────────────────────────────────────────────
 function mdRenderList(cases){
   var el=document.getElementById('md-list');
@@ -6143,6 +6158,15 @@ function mdRenderList(cases){
   var isAdmin=CU.role==='admin';
   var isLeader=CU.role==='leader'||CU.role==='sub';
   var canDelete=isAdmin||isLeader;
+
+  // 날짜 필터 적용
+  var allCount=(cases||[]).length;
+  if(_mdDateFilter==='today'){
+    var todayStr=new Date().toISOString().slice(0,10);
+    cases=(cases||[]).filter(function(c){return (c.created_at||'').slice(0,10)===todayStr;});
+  }
+  var cntEl=document.getElementById('md-flt-count');
+  if(cntEl)cntEl.textContent=_mdDateFilter==='today'?cases.length+'건 (오늘)':allCount+'건 (전체)';
 
   // 활성 건 (미처리/승인대기/재요청) vs 완료 건 분리
   var active=[];var completed=[];
