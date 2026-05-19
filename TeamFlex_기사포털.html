@@ -4076,7 +4076,7 @@ function norm_name_js(name){
 }
 function initSchedScrollSync(){
   var wrappers=Array.from(document.querySelectorAll('.ftw'));
-  if(wrappers.length<2)return;
+  if(wrappers.length<1)return;
   var _syncing=false;
   wrappers.forEach(function(el){
     el.addEventListener('scroll',function(){
@@ -4087,11 +4087,14 @@ function initSchedScrollSync(){
       _syncing=false;
     },{passive:true});
   });
-  // 오늘 컬럼 자동 스크롤 — 라우트 컬럼(96px) 바로 오른쪽에 오늘 컬럼이 오도록
+  // 오늘 컬럼 자동 스크롤 — 화면 중앙에 오도록 (sticky 라우트 컬럼 96px 고려)
   var todTh=document.querySelector('th.tod-col');
-  if(todTh){
-    var scrollTo=Math.max(0,todTh.offsetLeft-100);
-    wrappers.forEach(function(w){w.scrollLeft=scrollTo;});
+  if(todTh&&wrappers.length>0){
+    var _routeW=96;
+    var _visW=Math.max(1,(wrappers[0].clientWidth||300)-_routeW);
+    var _todW=todTh.offsetWidth||55;
+    var _scrollTo=Math.max(0,todTh.offsetLeft-_routeW-Math.floor((_visW-_todW)/2));
+    wrappers.forEach(function(w){w.scrollLeft=_scrollTo;});
   }
 }
 function moveSchedWeek(delta){
